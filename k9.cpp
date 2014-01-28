@@ -144,9 +144,9 @@ public:
 	// Enable Jaguar control:
 	// Increase motor safety timer to something suitably long
 	// Poke the motor speed to reset the watchdog, then enable the watchdog
-	topSpeed = 0.0;
+	topSpeed = 1200.0;
 	SmartDashboard::PutNumber("Top Speed", topSpeed);
-	bottomSpeed = 0.0;
+	bottomSpeed = 3200.0;
 	SmartDashboard::PutNumber("Bottom Speed", bottomSpeed);
 
 	topWheel->EnableControl();
@@ -176,10 +176,14 @@ public:
 	if (gamepad->GetRawButton(4)) {		// "Y"
 	    topSpeed = minSpeed + (maxSpeed - minSpeed) * (1.0 - gamepad->GetRawAxis(2)) / 2.0;
 	    SmartDashboard::PutNumber("Top Speed", topSpeed);
+	} else {
+	    topSpeed = SmartDashboard::GetNumber("Top Speed");
 	}
 	if (gamepad->GetRawButton(1)) {		// "A"
 	    bottomSpeed = minSpeed + (maxSpeed - minSpeed) * (1.0 - gamepad->GetRawAxis(2)) / 2.0;
 	    SmartDashboard::PutNumber("Bottom Speed", bottomSpeed);
+	} else {
+	    bottomSpeed = SmartDashboard::GetNumber("Bottom Speed");
 	}
 	topWheel->Set(topSpeed, SYNC_GROUP);
 	bottomWheel->Set(bottomSpeed, SYNC_GROUP);
