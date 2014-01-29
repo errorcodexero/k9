@@ -1,0 +1,39 @@
+<xml version="1.0">
+<dashboard>
+	<widget field="Top Measured" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="66" y="120"/>
+	</widget>
+	<widget field="Bottom Measured" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="310" y="120"/>
+	</widget>
+	<widget field="Bottom Voltage" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.LinePlot">
+		<location x="300" y="173"/>
+		<width>260</width>
+		<height>207</height>
+	</widget>
+	<widget field="Top Voltage" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.LinePlot">
+		<location x="20" y="172"/>
+		<width>260</width>
+		<height>208</height>
+	</widget>
+	<widget field="Top Speed" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="83" y="100"/>
+	</widget>
+	<widget field="Shooter P" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="207" y="20"/>
+	</widget>
+	<widget field="Shooter I" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="209" y="40"/>
+	</widget>
+	<widget field="Shooter D" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="206" y="60"/>
+	</widget>
+	<widget field="Bottom Speed" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="327" y="100"/>
+	</widget>
+</dashboard>
+<live-window>
+</live-window>
+	<hidden field="Top RPM"/>
+	<hidden field="Bottom RPM"/>
+</xml>
