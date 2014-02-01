@@ -4,8 +4,6 @@
 
 const double minSpeed = 1000.;
 const double maxSpeed = 3500.;
-const double initialTopSpeed = 1200.;
-const double initialBottomSpeed = 3200.;
 
 class ShootyDogThing : public IterativeRobot
 {
@@ -27,8 +25,8 @@ public:
 	kP(1.000),
 	kI(0.005),
 	kD(0.000),
-	topSpeed(0.),
-	bottomSpeed(0.),
+	topSpeed(1200.),
+	bottomSpeed(2800.),
 	report(0)
     {
 	this->SetPeriod(0); 	//Set update period to sync with robot control packets (20ms nominal)
@@ -90,14 +88,11 @@ public:
      */
     void ShootyDogThing::DisabledInit() {
 
-	topSpeed = 0.0;
-	SmartDashboard::PutNumber("Top Speed", topSpeed);
+	SmartDashboard::PutNumber("Top Speed", 0.0);
+	SmartDashboard::PutNumber("Bottom Speed", 0.0);
 
-	bottomSpeed = 0.0;
-	SmartDashboard::PutNumber("Bottom Speed", bottomSpeed);
-
-	topWheel->Set(topSpeed, SYNC_GROUP);
-	bottomWheel->Set(bottomSpeed, SYNC_GROUP);
+	topWheel->Set(0.0, SYNC_GROUP);
+	bottomWheel->Set(0.0, SYNC_GROUP);
 	CANJaguar::UpdateSyncGroup(SYNC_GROUP);
 
 	topWheel->DisableControl();
@@ -168,9 +163,7 @@ public:
 	// Enable Jaguar control:
 	// Increase motor safety timer to something suitably long
 	// Poke the motor speed to reset the watchdog, then enable the watchdog
-	topSpeed = initialTopSpeed;
 	SmartDashboard::PutNumber("Top Speed", topSpeed);
-	bottomSpeed = initialBottomSpeed;
 	SmartDashboard::PutNumber("Bottom Speed", bottomSpeed);
 
 	topWheel->EnableControl();
@@ -216,6 +209,14 @@ public:
 	CANJaguar::UpdateSyncGroup(SYNC_GROUP);
 
 	if (++report >= 25) {	// 500 milliseconds
+	    // Update PID parameters
+	    kP = SmartDashboard::GetNumber("Shooter P");
+	    kI = SmartDashboard::GetNumber("Shooter I");
+	    kD = SmartDashboard::GetNumber("Shooter D");
+	    topWheel->SetPID( kP, kI, kD );
+	    bottomWheel->SetPID( kP, kI, kD );
+
+	    // Get current output voltage and measured speed
 	    double topV = topWheel->GetOutputVoltage();
 	    double topMeasured = topWheel->GetSpeed(); 
 	    double bottomV = bottomWheel->GetOutputVoltage();
@@ -226,13 +227,6 @@ public:
 	    SmartDashboard::PutNumber("Top Measured", topMeasured);
 	    SmartDashboard::PutNumber("Bottom Voltage", bottomV);
 	    SmartDashboard::PutNumber("Bottom Measured", bottomMeasured);
-
-	    // Update PID parameters
-	    kP = SmartDashboard::GetNumber("Shooter P");
-	    kI = SmartDashboard::GetNumber("Shooter I");
-	    kD = SmartDashboard::GetNumber("Shooter D");
-	    topWheel->SetPID( kP, kI, kD );
-	    bottomWheel->SetPID( kP, kI, kD );
 
 	    report = 0;
 	}
