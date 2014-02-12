@@ -8,7 +8,7 @@ const double maxSpeed = 3500.;
 class ShootyDogThing : public IterativeRobot
 {
     Compressor *compressor;
-    CANJaguar *topWheel, *bottomWheel;
+    CANJaguar *topWheel, *bottomWheel1, *bottomWheel2;
     DoubleSolenoid *injector;
     Joystick *gamepad;
     double kP, kI, kD;
@@ -19,7 +19,8 @@ public:
     ShootyDogThing():
 	compressor(NULL),
 	topWheel(NULL),
-	bottomWheel(NULL),
+	bottomWheel1(NULL),
+	bottomWheel2(NULL),
 	injector(NULL),
 	gamepad(NULL),
 	kP(1.000),
@@ -36,7 +37,8 @@ public:
     {
 	delete gamepad;
 	delete injector;
-	delete bottomWheel;
+	delete bottomWheel2;
+	delete bottomWheel1;
 	delete topWheel;
 	delete compressor;
     }
@@ -51,11 +53,14 @@ public:
 
 	compressor  = new Compressor(1, 1);
 
-	topWheel    = new CANJaguar(5);
+	topWheel    = new CANJaguar(4);
 	topWheel->SetSafetyEnabled(false);	// motor safety off while configuring
 
-	bottomWheel = new CANJaguar(6);
-	bottomWheel->SetSafetyEnabled(false);	// motor safety off while configuring
+	bottomWheel1 = new CANJaguar(5);
+	bottomWheel1->SetSafetyEnabled(false);	// motor safety off while configuring
+
+	bottomWheel2 = new CANJaguar(6);
+	bottomWheel2->SetSafetyEnabled(false);	// motor safety off while configuring
 
 	injector    = new DoubleSolenoid(1, 2);
 	
@@ -64,7 +69,8 @@ public:
 	LiveWindow *lw = LiveWindow::GetInstance();
 	lw->AddActuator("K9", "Compressor", compressor);
 	lw->AddActuator("K9", "Top",        topWheel);
-	lw->AddActuator("K9", "Bottom",     bottomWheel);
+	lw->AddActuator("K9", "Bottom1",    bottomWheel1);
+	lw->AddActuator("K9", "Bottom2",    bottomWheel2);
 	lw->AddActuator("K9", "Injector",   injector);
 
 	SmartDashboard::PutNumber("Shooter P", kP);
@@ -92,13 +98,18 @@ public:
 	SmartDashboard::PutNumber("Bottom Speed", 0.0);
 
 	topWheel->Set(0.0, SYNC_GROUP);
-	bottomWheel->Set(0.0, SYNC_GROUP);
+	bottomWheel1->Set(0.0, SYNC_GROUP);
+	bottomWheel2->Set(0.0, SYNC_GROUP);
 	CANJaguar::UpdateSyncGroup(SYNC_GROUP);
 
 	topWheel->DisableControl();
 	topWheel->SetSafetyEnabled(false);
-	bottomWheel->DisableControl();
-	bottomWheel->SetSafetyEnabled(false);
+
+	bottomWheel1->DisableControl();
+	bottomWheel1->SetSafetyEnabled(false);
+
+	bottomWheel2->DisableControl();
+	bottomWheel2->SetSafetyEnabled(false);
 
 	compressor->Stop();
     }
@@ -143,22 +154,26 @@ public:
 
 	// Set control mode
 	topWheel->ChangeControlMode( CANJaguar::kSpeed );
-	bottomWheel->ChangeControlMode( CANJaguar::kSpeed );
+	bottomWheel1->ChangeControlMode( CANJaguar::kSpeed );
+	bottomWheel2->ChangeControlMode( CANJaguar::kSpeed );
 
 	// Set encoder as reference device for speed controller mode:
 	topWheel->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
-	bottomWheel->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
+	bottomWheel1->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
+	bottomWheel2->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
 
 	// Set codes per revolution parameter:
 	topWheel->ConfigEncoderCodesPerRev( 1 );
-	bottomWheel->ConfigEncoderCodesPerRev( 1 );
+	bottomWheel1->ConfigEncoderCodesPerRev( 1 );
+	bottomWheel2->ConfigEncoderCodesPerRev( 1 );
 
 	// Set Jaguar PID parameters:
 	kP = SmartDashboard::GetNumber("Shooter P");
 	kI = SmartDashboard::GetNumber("Shooter I");
 	kD = SmartDashboard::GetNumber("Shooter D");
 	topWheel->SetPID( kP, kI, kD );
-	bottomWheel->SetPID( kP, kI, kD );
+	bottomWheel1->SetPID( kP, kI, kD );
+	bottomWheel2->SetPID( kP, kI, kD );
 
 	// Enable Jaguar control:
 	// Increase motor safety timer to something suitably long
@@ -169,14 +184,21 @@ public:
 	topWheel->EnableControl();
 	topWheel->SetExpiration(2.0);
 
-	bottomWheel->EnableControl();
-	bottomWheel->SetExpiration(2.0);
+	bottomWheel1->EnableControl();
+	bottomWheel1->SetExpiration(2.0);
+
+	bottomWheel2->EnableControl();
+	bottomWheel2->SetExpiration(2.0);
 
 	topWheel->Set(topSpeed, SYNC_GROUP);
-	bottomWheel->Set(bottomSpeed, SYNC_GROUP);
+	bottomWheel1->Set(bottomSpeed, SYNC_GROUP);
+	bottomWheel2->Set(bottomSpeed, SYNC_GROUP);
+
 	CANJaguar::UpdateSyncGroup(SYNC_GROUP);
+
 	topWheel->SetSafetyEnabled(true);
-	bottomWheel->SetSafetyEnabled(true);
+	bottomWheel1->SetSafetyEnabled(true);
+	bottomWheel2->SetSafetyEnabled(true);
 
 	// reset reporting counter
 	report = 0;
@@ -205,7 +227,8 @@ public:
 	}
 
 	topWheel->Set(topSpeed, SYNC_GROUP);
-	bottomWheel->Set(bottomSpeed, SYNC_GROUP);
+	bottomWheel1->Set(bottomSpeed, SYNC_GROUP);
+	bottomWheel2->Set(bottomSpeed, SYNC_GROUP);
 	CANJaguar::UpdateSyncGroup(SYNC_GROUP);
 
 	if (++report >= 25) {	// 500 milliseconds
@@ -214,13 +237,14 @@ public:
 	    kI = SmartDashboard::GetNumber("Shooter I");
 	    kD = SmartDashboard::GetNumber("Shooter D");
 	    topWheel->SetPID( kP, kI, kD );
-	    bottomWheel->SetPID( kP, kI, kD );
+	    bottomWheel1->SetPID( kP, kI, kD );
+	    bottomWheel2->SetPID( kP, kI, kD );
 
 	    // Get current output voltage and measured speed
 	    double topV = topWheel->GetOutputVoltage();
 	    double topMeasured = topWheel->GetSpeed(); 
-	    double bottomV = bottomWheel->GetOutputVoltage();
-	    double bottomMeasured = bottomWheel->GetSpeed(); 
+	    double bottomV = bottomWheel1->GetOutputVoltage();
+	    double bottomMeasured = bottomWheel1->GetSpeed(); 
 
 	    // Send values to SmartDashboard
 	    SmartDashboard::PutNumber("Top Voltage", topV);
@@ -258,20 +282,26 @@ public:
 	injector->Set(DoubleSolenoid::kOff);
 
 	topWheel->ChangeControlMode( CANJaguar::kPercentVbus );
-	bottomWheel->ChangeControlMode( CANJaguar::kPercentVbus );
+	bottomWheel1->ChangeControlMode( CANJaguar::kPercentVbus );
+	bottomWheel2->ChangeControlMode( CANJaguar::kPercentVbus );
 
 	topWheel->EnableControl();
 	topWheel->SetExpiration(2.0);
 
-	bottomWheel->EnableControl();
-	bottomWheel->SetExpiration(2.0);
+	bottomWheel1->EnableControl();
+	bottomWheel1->SetExpiration(2.0);
+
+	bottomWheel2->EnableControl();
+	bottomWheel2->SetExpiration(2.0);
 
 	topWheel->Set(0.0, SYNC_GROUP);
-	bottomWheel->Set(0.0, SYNC_GROUP);
+	bottomWheel1->Set(0.0, SYNC_GROUP);
+	bottomWheel2->Set(0.0, SYNC_GROUP);
 	CANJaguar::UpdateSyncGroup(SYNC_GROUP);
 
 	topWheel->SetSafetyEnabled(true);
-	bottomWheel->SetSafetyEnabled(true);
+	bottomWheel1->SetSafetyEnabled(true);
+	bottomWheel2->SetSafetyEnabled(true);
     }
 
     /**

@@ -1,7 +1,7 @@
 <xml version="1.0">
 <dashboard>
-	<widget field="Bottom Measured" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.LinePlot">
-		<location x="573" y="15"/>
+	<widget field="Bottom Measured" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="310" y="120"/>
 	</widget>
 	<widget field="Top Measured" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
 		<location x="66" y="120"/>
