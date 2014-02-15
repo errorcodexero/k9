@@ -10,7 +10,7 @@ class ShootyDogThing : public IterativeRobot
     Compressor *compressor;
     CANJaguar *topWheel1, *topWheel2;
     CANJaguar *bottomWheel1, *bottomWheel2;
-    DoubleSolenoid *injector;
+    DoubleSolenoid *injectorL, *injectorR;
     Joystick *gamepad;
     double kP, kI, kD;
     double topSpeed, bottomSpeed;
@@ -23,7 +23,8 @@ public:
 	topWheel2(NULL),
 	bottomWheel1(NULL),
 	bottomWheel2(NULL),
-	injector(NULL),
+	injectorL(NULL),
+	injectorR(NULL),
 	gamepad(NULL),
 	kP(1.000),
 	kI(0.005),
@@ -38,7 +39,8 @@ public:
     ~ShootyDogThing()
     {
 	delete gamepad;
-	delete injector;
+	delete injectorR;
+	delete injectorL;
 	delete bottomWheel2;
 	delete bottomWheel1;
 	delete topWheel2;
@@ -68,9 +70,10 @@ public:
 	bottomWheel2 = new CANJaguar(6);
 	bottomWheel2->SetSafetyEnabled(false);	// motor safety off while configuring
 
-	injector    = new DoubleSolenoid(1, 2);
+	injectorL    = new DoubleSolenoid(1, 2);
+	injectorR    = new DoubleSolenoid(3, 4);
 	
-	gamepad     = new Joystick(1);
+	gamepad      = new Joystick(1);
 
 	LiveWindow *lw = LiveWindow::GetInstance();
 	lw->AddActuator("K9", "Compressor", compressor);
@@ -78,7 +81,8 @@ public:
 	lw->AddActuator("K9", "Top2",       topWheel2);
 	lw->AddActuator("K9", "Bottom1",    bottomWheel1);
 	lw->AddActuator("K9", "Bottom2",    bottomWheel2);
-	lw->AddActuator("K9", "Injector",   injector);
+	lw->AddActuator("K9", "InjectorL",  injectorL);
+	lw->AddActuator("K9", "InjectorR",  injectorR);
 
 	SmartDashboard::PutNumber("Shooter P", kP);
 	SmartDashboard::PutNumber("Shooter I", kI);
@@ -163,7 +167,8 @@ public:
     void ShootyDogThing::TeleopInit() {
 
 	compressor->Start();
-	injector->Set(DoubleSolenoid::kReverse);
+	injectorL->Set(DoubleSolenoid::kReverse);
+	injectorR->Set(DoubleSolenoid::kReverse);
 
 	// Set control mode
 	topWheel1->ChangeControlMode( CANJaguar::kSpeed );
@@ -302,15 +307,18 @@ public:
 
 	if (gamepad->GetRawButton(4))
 	{
-	    injector->Set(DoubleSolenoid::kForward);
+	    injectorL->Set(DoubleSolenoid::kForward);
+	    injectorR->Set(DoubleSolenoid::kForward);
 	}
 	else if (gamepad->GetRawButton(2))
 	{
-	    injector->Set(DoubleSolenoid::kReverse);
+	    injectorL->Set(DoubleSolenoid::kReverse);
+	    injectorR->Set(DoubleSolenoid::kReverse);
 	}
 	else
 	{
-	    injector->Set(DoubleSolenoid::kOff);
+	    injectorL->Set(DoubleSolenoid::kOff);
+	    injectorR->Set(DoubleSolenoid::kOff);
 	}
 
     }
@@ -324,7 +332,8 @@ public:
     void ShootyDogThing::TestInit() {
 
 	compressor->Start();
-	injector->Set(DoubleSolenoid::kOff);
+	injectorL->Set(DoubleSolenoid::kOff);
+	injectorR->Set(DoubleSolenoid::kOff);
 
 	topWheel1->ChangeControlMode( CANJaguar::kPercentVbus );
 	topWheel2->ChangeControlMode( CANJaguar::kPercentVbus );
