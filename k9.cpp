@@ -10,7 +10,10 @@ class ShootyDogThing : public IterativeRobot
     Compressor *compressor;
     CANJaguar *topWheel1, *topWheel2;
     CANJaguar *bottomWheel1, *bottomWheel2;
+    DoubleSolenoid *arm;
     DoubleSolenoid *injectorL, *injectorR;
+    Solenoid *ejector;
+    Solenoid *legs;
     Joystick *gamepad;
     double kP, kI, kD;
     double topSpeed, bottomSpeed;
@@ -23,8 +26,11 @@ public:
 	topWheel2(NULL),
 	bottomWheel1(NULL),
 	bottomWheel2(NULL),
+	arm(NULL),
 	injectorL(NULL),
 	injectorR(NULL),
+	ejector(NULL),
+	legs(NULL),
 	gamepad(NULL),
 	kP(1.000),
 	kI(0.005),
@@ -39,8 +45,11 @@ public:
     ~ShootyDogThing()
     {
 	delete gamepad;
-	delete injectorR;
+	delete legs;
+	delete ejector;
 	delete injectorL;
+	delete injectorR;
+	delete arm;
 	delete bottomWheel2;
 	delete bottomWheel1;
 	delete topWheel2;
@@ -58,21 +67,24 @@ public:
 
 	compressor  = new Compressor(1, 1);
 
-	topWheel1    = new CANJaguar(3);
+	topWheel1    = new CANJaguar(1);
 	topWheel1->SetSafetyEnabled(false);	// motor safety off while configuring
 
-	topWheel2    = new CANJaguar(3);
+	topWheel2    = new CANJaguar(2);
 	topWheel2->SetSafetyEnabled(false);	// motor safety off while configuring
 
-	bottomWheel1 = new CANJaguar(5);
+	bottomWheel1 = new CANJaguar(3);
 	bottomWheel1->SetSafetyEnabled(false);	// motor safety off while configuring
 
-	bottomWheel2 = new CANJaguar(6);
+	bottomWheel2 = new CANJaguar(4);
 	bottomWheel2->SetSafetyEnabled(false);	// motor safety off while configuring
 
-	injectorL    = new DoubleSolenoid(1, 2);
-	injectorR    = new DoubleSolenoid(3, 4);
-	
+	arm          = new DoubleSolenoid(2, 1);
+	injectorL    = new DoubleSolenoid(5, 3);
+	injectorR    = new DoubleSolenoid(6, 4);
+	ejector      = new Solenoid(7);
+	legs         = new Solenoid(8);
+
 	gamepad      = new Joystick(1);
 
 	LiveWindow *lw = LiveWindow::GetInstance();
@@ -81,8 +93,11 @@ public:
 	lw->AddActuator("K9", "Top2",       topWheel2);
 	lw->AddActuator("K9", "Bottom1",    bottomWheel1);
 	lw->AddActuator("K9", "Bottom2",    bottomWheel2);
+	lw->AddActuator("K9", "Arm",        arm);
 	lw->AddActuator("K9", "InjectorL",  injectorL);
 	lw->AddActuator("K9", "InjectorR",  injectorR);
+	lw->AddActuator("K9", "Ejector",    ejector);
+	lw->AddActuator("K9", "Legs",       legs);
 
 	SmartDashboard::PutNumber("Shooter P", kP);
 	SmartDashboard::PutNumber("Shooter I", kI);
@@ -128,6 +143,12 @@ public:
 	bottomWheel2->DisableControl();
 	bottomWheel2->SetSafetyEnabled(false);
 
+	arm->Set(DoubleSolenoid::kOff);
+	injectorL->Set(DoubleSolenoid::kOff);
+	injectorR->Set(DoubleSolenoid::kOff);
+	// ejector->Set(false);
+	// legs->Set(false);
+
 	compressor->Stop();
     }
 
@@ -167,8 +188,11 @@ public:
     void ShootyDogThing::TeleopInit() {
 
 	compressor->Start();
+	arm->Set(DoubleSolenoid::kForward);
 	injectorL->Set(DoubleSolenoid::kReverse);
 	injectorR->Set(DoubleSolenoid::kReverse);
+	ejector->Set(false);
+	legs->Set(true);
 
 	// Set control mode
 	topWheel1->ChangeControlMode( CANJaguar::kSpeed );
@@ -285,24 +309,14 @@ public:
 	    report = 0;
 	}
 
-	if (gamepad->GetRawButton(1)) {
-	    topSpeed = minSpeed + (maxSpeed - minSpeed) * (1.0 - gamepad->GetRawAxis(2)) / 2.0;
-	    SmartDashboard::PutNumber("Top Speed", topSpeed);
-	} else {
-	    topSpeed = SmartDashboard::GetNumber("Top Speed");
-	}
-
-	if (gamepad->GetRawButton(3)) {
-	    bottomSpeed = minSpeed + (maxSpeed - minSpeed) * (1.0 - gamepad->GetRawAxis(2)) / 2.0;
-	    SmartDashboard::PutNumber("Bottom Speed", bottomSpeed);
-	} else {
-	    bottomSpeed = SmartDashboard::GetNumber("Bottom Speed");
-	}
-
+	topSpeed = SmartDashboard::GetNumber("Top Speed");
 	topWheel1->Set(topSpeed, SYNC_GROUP);
 	topWheel2->Set(topSpeed, SYNC_GROUP);
+
+	bottomSpeed = SmartDashboard::GetNumber("Bottom Speed");
 	bottomWheel1->Set(bottomSpeed, SYNC_GROUP);
 	bottomWheel2->Set(bottomSpeed, SYNC_GROUP);
+
 	CANJaguar::UpdateSyncGroup(SYNC_GROUP);
 
 	if (gamepad->GetRawButton(4))
@@ -332,8 +346,11 @@ public:
     void ShootyDogThing::TestInit() {
 
 	compressor->Start();
+	arm->Set(DoubleSolenoid::kOff);
 	injectorL->Set(DoubleSolenoid::kOff);
 	injectorR->Set(DoubleSolenoid::kOff);
+	ejector->Set(false);
+	legs->Set(false);
 
 	topWheel1->ChangeControlMode( CANJaguar::kPercentVbus );
 	topWheel2->ChangeControlMode( CANJaguar::kPercentVbus );
