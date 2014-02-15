@@ -8,7 +8,8 @@ const double maxSpeed = 3500.;
 class ShootyDogThing : public IterativeRobot
 {
     Compressor *compressor;
-    CANJaguar *topWheel, *bottomWheel1, *bottomWheel2;
+    CANJaguar *topWheel1, *topWheel2;
+    CANJaguar *bottomWheel1, *bottomWheel2;
     DoubleSolenoid *injector;
     Joystick *gamepad;
     double kP, kI, kD;
@@ -18,7 +19,8 @@ class ShootyDogThing : public IterativeRobot
 public:
     ShootyDogThing():
 	compressor(NULL),
-	topWheel(NULL),
+	topWheel1(NULL),
+	topWheel2(NULL),
 	bottomWheel1(NULL),
 	bottomWheel2(NULL),
 	injector(NULL),
@@ -39,7 +41,8 @@ public:
 	delete injector;
 	delete bottomWheel2;
 	delete bottomWheel1;
-	delete topWheel;
+	delete topWheel2;
+	delete topWheel1;
 	delete compressor;
     }
     
@@ -53,8 +56,11 @@ public:
 
 	compressor  = new Compressor(1, 1);
 
-	topWheel    = new CANJaguar(4);
-	topWheel->SetSafetyEnabled(false);	// motor safety off while configuring
+	topWheel1    = new CANJaguar(3);
+	topWheel1->SetSafetyEnabled(false);	// motor safety off while configuring
+
+	topWheel2    = new CANJaguar(3);
+	topWheel2->SetSafetyEnabled(false);	// motor safety off while configuring
 
 	bottomWheel1 = new CANJaguar(5);
 	bottomWheel1->SetSafetyEnabled(false);	// motor safety off while configuring
@@ -68,7 +74,8 @@ public:
 
 	LiveWindow *lw = LiveWindow::GetInstance();
 	lw->AddActuator("K9", "Compressor", compressor);
-	lw->AddActuator("K9", "Top",        topWheel);
+	lw->AddActuator("K9", "Top1",       topWheel1);
+	lw->AddActuator("K9", "Top2",       topWheel2);
 	lw->AddActuator("K9", "Bottom1",    bottomWheel1);
 	lw->AddActuator("K9", "Bottom2",    bottomWheel2);
 	lw->AddActuator("K9", "Injector",   injector);
@@ -77,13 +84,15 @@ public:
 	SmartDashboard::PutNumber("Shooter I", kI);
 	SmartDashboard::PutNumber("Shooter D", kD);
 
-	SmartDashboard::PutNumber("Top Speed",    topSpeed);
-	SmartDashboard::PutNumber("Top Voltage",  0.0);
-	SmartDashboard::PutNumber("Top Measured", 0.0);
+	SmartDashboard::PutNumber("Top Speed",     topSpeed);
+	SmartDashboard::PutNumber("Top Current 1", 0.0);
+	SmartDashboard::PutNumber("Top Current 2", 0.0);
+	SmartDashboard::PutNumber("Top Measured",  0.0);
 
-	SmartDashboard::PutNumber("Bottom Speed",    bottomSpeed);
-	SmartDashboard::PutNumber("Bottom Voltage",  0.0);
-	SmartDashboard::PutNumber("Bottom Measured", 0.0);
+	SmartDashboard::PutNumber("Bottom Speed",     bottomSpeed);
+	SmartDashboard::PutNumber("Bottom Current 1", 0.0);
+	SmartDashboard::PutNumber("Bottom Current 2", 0.0);
+	SmartDashboard::PutNumber("Bottom Measured",  0.0);
     }
 
     /**
@@ -97,13 +106,17 @@ public:
 	SmartDashboard::PutNumber("Top Speed", 0.0);
 	SmartDashboard::PutNumber("Bottom Speed", 0.0);
 
-	topWheel->Set(0.0, SYNC_GROUP);
+	topWheel1->Set(0.0, SYNC_GROUP);
+	topWheel2->Set(0.0, SYNC_GROUP);
 	bottomWheel1->Set(0.0, SYNC_GROUP);
 	bottomWheel2->Set(0.0, SYNC_GROUP);
 	CANJaguar::UpdateSyncGroup(SYNC_GROUP);
 
-	topWheel->DisableControl();
-	topWheel->SetSafetyEnabled(false);
+	topWheel1->DisableControl();
+	topWheel1->SetSafetyEnabled(false);
+
+	topWheel2->DisableControl();
+	topWheel2->SetSafetyEnabled(false);
 
 	bottomWheel1->DisableControl();
 	bottomWheel1->SetSafetyEnabled(false);
@@ -153,17 +166,20 @@ public:
 	injector->Set(DoubleSolenoid::kReverse);
 
 	// Set control mode
-	topWheel->ChangeControlMode( CANJaguar::kSpeed );
+	topWheel1->ChangeControlMode( CANJaguar::kSpeed );
+	topWheel2->ChangeControlMode( CANJaguar::kSpeed );
 	bottomWheel1->ChangeControlMode( CANJaguar::kSpeed );
 	bottomWheel2->ChangeControlMode( CANJaguar::kSpeed );
 
 	// Set encoder as reference device for speed controller mode:
-	topWheel->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
+	topWheel1->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
+	topWheel2->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
 	bottomWheel1->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
 	bottomWheel2->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
 
 	// Set codes per revolution parameter:
-	topWheel->ConfigEncoderCodesPerRev( 1 );
+	topWheel1->ConfigEncoderCodesPerRev( 1 );
+	topWheel2->ConfigEncoderCodesPerRev( 1 );
 	bottomWheel1->ConfigEncoderCodesPerRev( 1 );
 	bottomWheel2->ConfigEncoderCodesPerRev( 1 );
 
@@ -171,7 +187,8 @@ public:
 	kP = SmartDashboard::GetNumber("Shooter P");
 	kI = SmartDashboard::GetNumber("Shooter I");
 	kD = SmartDashboard::GetNumber("Shooter D");
-	topWheel->SetPID( kP, kI, kD );
+	topWheel1->SetPID( kP, kI, kD );
+	topWheel2->SetPID( kP, kI, kD );
 	bottomWheel1->SetPID( kP, kI, kD );
 	bottomWheel2->SetPID( kP, kI, kD );
 
@@ -181,8 +198,11 @@ public:
 	SmartDashboard::PutNumber("Top Speed", topSpeed);
 	SmartDashboard::PutNumber("Bottom Speed", bottomSpeed);
 
-	topWheel->EnableControl();
-	topWheel->SetExpiration(2.0);
+	topWheel1->EnableControl();
+	topWheel1->SetExpiration(2.0);
+
+	topWheel2->EnableControl();
+	topWheel2->SetExpiration(2.0);
 
 	bottomWheel1->EnableControl();
 	bottomWheel1->SetExpiration(2.0);
@@ -190,13 +210,15 @@ public:
 	bottomWheel2->EnableControl();
 	bottomWheel2->SetExpiration(2.0);
 
-	topWheel->Set(topSpeed, SYNC_GROUP);
+	topWheel1->Set(topSpeed, SYNC_GROUP);
+	topWheel2->Set(topSpeed, SYNC_GROUP);
 	bottomWheel1->Set(bottomSpeed, SYNC_GROUP);
 	bottomWheel2->Set(bottomSpeed, SYNC_GROUP);
 
 	CANJaguar::UpdateSyncGroup(SYNC_GROUP);
 
-	topWheel->SetSafetyEnabled(true);
+	topWheel1->SetSafetyEnabled(true);
+	topWheel2->SetSafetyEnabled(true);
 	bottomWheel1->SetSafetyEnabled(true);
 	bottomWheel2->SetSafetyEnabled(true);
 
@@ -212,6 +234,52 @@ public:
      * rate while the robot is in teleop mode.
      */
     void ShootyDogThing::TeleopPeriodic() {
+	// schedule updates to avoid overloading CAN bus or CPU
+	switch (report++) {
+	case 0:
+	    // Update PID parameters
+	    double newP = SmartDashboard::GetNumber("Shooter P");
+	    double newI = SmartDashboard::GetNumber("Shooter I");
+	    double newD = SmartDashboard::GetNumber("Shooter D");
+	    if (newP != kP || newI != kI || newD != kD) {
+		kP = newP;
+		kI = newI;
+		kD = newD;
+		topWheel1->SetPID( kP, kI, kD );
+		topWheel2->SetPID( kP, kI, kD );
+		bottomWheel1->SetPID( kP, kI, kD );
+		bottomWheel2->SetPID( kP, kI, kD );
+	    }
+	    break;
+
+	case 8:
+	    // Get top output voltage, current and measured speed
+	    double topI1 = topWheel1->GetOutputCurrent();
+	    double topI2 = topWheel2->GetOutputCurrent();
+	    double topMeasured = topWheel1->GetSpeed(); 
+
+	    // Send values to SmartDashboard
+	    SmartDashboard::PutNumber("Top Current 1", topI1);
+	    SmartDashboard::PutNumber("Top Current 2", topI2);
+	    SmartDashboard::PutNumber("Top Measured",  topMeasured);
+	    break;
+
+	case 16:
+	    // Get bottom output voltage, current and measured speed
+	    double bottomI1 = bottomWheel1->GetOutputCurrent();
+	    double bottomI2 = bottomWheel2->GetOutputCurrent();
+	    double bottomMeasured = bottomWheel1->GetSpeed(); 
+
+	    // Send values to SmartDashboard
+	    SmartDashboard::PutNumber("Bottom Current 1", bottomI1);
+	    SmartDashboard::PutNumber("Bottom Current 2", bottomI2);
+	    SmartDashboard::PutNumber("Bottom Measured",  bottomMeasured);
+	    break;
+
+	case 24:		// 480 milliseconds
+	    report = 0;
+	}
+
 	if (gamepad->GetRawButton(1)) {
 	    topSpeed = minSpeed + (maxSpeed - minSpeed) * (1.0 - gamepad->GetRawAxis(2)) / 2.0;
 	    SmartDashboard::PutNumber("Top Speed", topSpeed);
@@ -226,34 +294,11 @@ public:
 	    bottomSpeed = SmartDashboard::GetNumber("Bottom Speed");
 	}
 
-	topWheel->Set(topSpeed, SYNC_GROUP);
+	topWheel1->Set(topSpeed, SYNC_GROUP);
+	topWheel2->Set(topSpeed, SYNC_GROUP);
 	bottomWheel1->Set(bottomSpeed, SYNC_GROUP);
 	bottomWheel2->Set(bottomSpeed, SYNC_GROUP);
 	CANJaguar::UpdateSyncGroup(SYNC_GROUP);
-
-	if (++report >= 25) {	// 500 milliseconds
-	    // Update PID parameters
-	    kP = SmartDashboard::GetNumber("Shooter P");
-	    kI = SmartDashboard::GetNumber("Shooter I");
-	    kD = SmartDashboard::GetNumber("Shooter D");
-	    topWheel->SetPID( kP, kI, kD );
-	    bottomWheel1->SetPID( kP, kI, kD );
-	    bottomWheel2->SetPID( kP, kI, kD );
-
-	    // Get current output voltage and measured speed
-	    double topV = topWheel->GetOutputVoltage();
-	    double topMeasured = topWheel->GetSpeed(); 
-	    double bottomV = bottomWheel1->GetOutputVoltage();
-	    double bottomMeasured = bottomWheel1->GetSpeed(); 
-
-	    // Send values to SmartDashboard
-	    SmartDashboard::PutNumber("Top Voltage", topV);
-	    SmartDashboard::PutNumber("Top Measured", topMeasured);
-	    SmartDashboard::PutNumber("Bottom Voltage", bottomV);
-	    SmartDashboard::PutNumber("Bottom Measured", bottomMeasured);
-
-	    report = 0;
-	}
 
 	if (gamepad->GetRawButton(4))
 	{
@@ -281,12 +326,16 @@ public:
 	compressor->Start();
 	injector->Set(DoubleSolenoid::kOff);
 
-	topWheel->ChangeControlMode( CANJaguar::kPercentVbus );
+	topWheel1->ChangeControlMode( CANJaguar::kPercentVbus );
+	topWheel2->ChangeControlMode( CANJaguar::kPercentVbus );
 	bottomWheel1->ChangeControlMode( CANJaguar::kPercentVbus );
 	bottomWheel2->ChangeControlMode( CANJaguar::kPercentVbus );
 
-	topWheel->EnableControl();
-	topWheel->SetExpiration(2.0);
+	topWheel1->EnableControl();
+	topWheel1->SetExpiration(2.0);
+
+	topWheel2->EnableControl();
+	topWheel2->SetExpiration(2.0);
 
 	bottomWheel1->EnableControl();
 	bottomWheel1->SetExpiration(2.0);
@@ -294,12 +343,14 @@ public:
 	bottomWheel2->EnableControl();
 	bottomWheel2->SetExpiration(2.0);
 
-	topWheel->Set(0.0, SYNC_GROUP);
+	topWheel1->Set(0.0, SYNC_GROUP);
+	topWheel2->Set(0.0, SYNC_GROUP);
 	bottomWheel1->Set(0.0, SYNC_GROUP);
 	bottomWheel2->Set(0.0, SYNC_GROUP);
 	CANJaguar::UpdateSyncGroup(SYNC_GROUP);
 
-	topWheel->SetSafetyEnabled(true);
+	topWheel1->SetSafetyEnabled(true);
+	topWheel2->SetSafetyEnabled(true);
 	bottomWheel1->SetSafetyEnabled(true);
 	bottomWheel2->SetSafetyEnabled(true);
     }
