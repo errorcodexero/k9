@@ -1,9 +1,10 @@
 #include "WPILib.h"
 
-#define SYNC_GROUP 0x40
-
 const double minSpeed = 1000.;
 const double maxSpeed = 3500.;
+const double pidThreshold = 0.80;
+const double vbusThreshold = 0.60;
+
 
 class ShootyDogThing : public IterativeRobot
 {
@@ -15,8 +16,11 @@ class ShootyDogThing : public IterativeRobot
     Solenoid *ejector;
     Solenoid *legs;
     Joystick *gamepad;
+    bool topPID;
+    bool bottomPID;
     double kP, kI, kD;
     double topSpeed, bottomSpeed;
+    double topMeasured, bottomMeasured;
     int report;
 
 public:
@@ -35,8 +39,8 @@ public:
 	kP(1.000),
 	kI(0.005),
 	kD(0.000),
-	topSpeed(1200.),
-	bottomSpeed(2800.),
+	topSpeed(1400.),
+	bottomSpeed(2850.),
 	report(0)
     {
 	this->SetPeriod(0); 	//Set update period to sync with robot control packets (20ms nominal)
@@ -63,21 +67,29 @@ public:
      * Use this method for default Robot-wide initialization which will
      * be called when the robot is first powered on.  It will be called exactly 1 time.
      */
-    void ShootyDogThing::RobotInit() {
+    void RobotInit() {
 
 	compressor  = new Compressor(1, 1);
 
 	topWheel1    = new CANJaguar(1);
 	topWheel1->SetSafetyEnabled(false);	// motor safety off while configuring
+	topWheel1->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
+	topWheel1->ConfigEncoderCodesPerRev( 1 );
 
 	topWheel2    = new CANJaguar(2);
 	topWheel2->SetSafetyEnabled(false);	// motor safety off while configuring
+	topWheel2->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
+	topWheel2->ConfigEncoderCodesPerRev( 1 );
 
 	bottomWheel1 = new CANJaguar(3);
 	bottomWheel1->SetSafetyEnabled(false);	// motor safety off while configuring
+	bottomWheel1->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
+	bottomWheel1->ConfigEncoderCodesPerRev( 1 );
 
 	bottomWheel2 = new CANJaguar(4);
 	bottomWheel2->SetSafetyEnabled(false);	// motor safety off while configuring
+	bottomWheel2->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
+	bottomWheel2->ConfigEncoderCodesPerRev( 1 );
 
 	arm          = new DoubleSolenoid(2, 1);
 	injectorL    = new DoubleSolenoid(5, 3);
@@ -114,34 +126,53 @@ public:
 	SmartDashboard::PutNumber("Bottom Measured",  0.0);
     }
 
+    // put jag in PID control mode, enabled
+    void jagPID( CANJaguar *jag, double setpoint )
+    {
+	jag->ChangeControlMode( CANJaguar::kSpeed );
+	jag->SetPID( kP, kI, kD );
+	jag->EnableControl();
+	jag->SetExpiration(2.0);
+	jag->Set(setpoint, 0);
+	jag->SetSafetyEnabled(true);
+    }
+
+    // put Jag in %vbus control mode, enabled
+    void jagVbus( CANJaguar *jag, double setpoint )
+    {
+	jag->ChangeControlMode( CANJaguar::kPercentVbus );
+	jag->EnableControl();
+	jag->SetExpiration(2.0);
+	jag->Set(setpoint, 0);
+	jag->SetSafetyEnabled(true);
+    }
+
+    // put Jag in %vbus control mode, disabled
+    void jagStop( CANJaguar *jag )
+    {
+	jag->Set(0.0, 0);
+	jag->DisableControl();
+	jag->SetSafetyEnabled(false);
+    }
+
     /**
      * Initialization code for disabled mode should go here.
      * 
      * Use this method for initialization code which will be called each time
      * the robot enters disabled mode. 
      */
-    void ShootyDogThing::DisabledInit() {
-
+    void DisabledInit()
+    {
 	SmartDashboard::PutNumber("Top Speed", 0.0);
 	SmartDashboard::PutNumber("Bottom Speed", 0.0);
 
-	topWheel1->Set(0.0, SYNC_GROUP);
-	topWheel2->Set(0.0, SYNC_GROUP);
-	bottomWheel1->Set(0.0, SYNC_GROUP);
-	bottomWheel2->Set(0.0, SYNC_GROUP);
-	CANJaguar::UpdateSyncGroup(SYNC_GROUP);
+	jagStop(topWheel1);
+	jagStop(topWheel2);
+	jagStop(bottomWheel1);
+	jagStop(bottomWheel2);
 
-	topWheel1->DisableControl();
-	topWheel1->SetSafetyEnabled(false);
-
-	topWheel2->DisableControl();
-	topWheel2->SetSafetyEnabled(false);
-
-	bottomWheel1->DisableControl();
-	bottomWheel1->SetSafetyEnabled(false);
-
-	bottomWheel2->DisableControl();
-	bottomWheel2->SetSafetyEnabled(false);
+	topPID = bottomPID = false;
+	topMeasured = bottomMeasured = 0;
 
 	arm->Set(DoubleSolenoid::kOff);
 	injectorL->Set(DoubleSolenoid::kOff);
@@ -158,7 +189,9 @@ public:
      * Use this method for code which will be called periodically at a regular
      * rate while the robot is in disabled mode.
      */
-    void ShootyDogThing::DisabledPeriodic() {
+    void DisabledPeriodic()
+    {
+	// TBD: keep watching wheel speeds during spin-down?
     }
 
     /**
@@ -167,8 +200,7 @@ public:
      * Use this method for initialization code which will be called each time
      * the robot enters autonomous mode.
      */
-    void ShootyDogThing::AutonomousInit() {
-    }
+    void AutonomousInit() { }
 
     /**
      * Periodic code for autonomous mode should go here.
@@ -176,8 +208,7 @@ public:
      * Use this method for code which will be called periodically at a regular
      * rate while the robot is in autonomous mode.
      */
-    void ShootyDogThing::AutonomousPeriodic() {
-    }
+    void AutonomousPeriodic() { }
 
     /**
      * Initialization code for teleop mode should go here.
@@ -185,8 +216,8 @@ public:
      * Use this method for initialization code which will be called each time
      * the robot enters teleop mode.
      */
-    void ShootyDogThing::TeleopInit() {
-
+    void TeleopInit()
+    {
 	compressor->Start();
 	arm->Set(DoubleSolenoid::kForward);
 	injectorL->Set(DoubleSolenoid::kReverse);
@@ -194,62 +225,16 @@ public:
 	ejector->Set(false);
 	legs->Set(true);
 
-	// Set control mode
-	topWheel1->ChangeControlMode( CANJaguar::kSpeed );
-	topWheel2->ChangeControlMode( CANJaguar::kSpeed );
-	bottomWheel1->ChangeControlMode( CANJaguar::kSpeed );
-	bottomWheel2->ChangeControlMode( CANJaguar::kSpeed );
-
-	// Set encoder as reference device for speed controller mode:
-	topWheel1->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
-	topWheel2->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
-	bottomWheel1->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
-	bottomWheel2->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
-
-	// Set codes per revolution parameter:
-	topWheel1->ConfigEncoderCodesPerRev( 1 );
-	topWheel2->ConfigEncoderCodesPerRev( 1 );
-	bottomWheel1->ConfigEncoderCodesPerRev( 1 );
-	bottomWheel2->ConfigEncoderCodesPerRev( 1 );
-
-	// Set Jaguar PID parameters:
-	kP = SmartDashboard::GetNumber("Shooter P");
-	kI = SmartDashboard::GetNumber("Shooter I");
-	kD = SmartDashboard::GetNumber("Shooter D");
-	topWheel1->SetPID( kP, kI, kD );
-	topWheel2->SetPID( kP, kI, kD );
-	bottomWheel1->SetPID( kP, kI, kD );
-	bottomWheel2->SetPID( kP, kI, kD );
-
-	// Enable Jaguar control:
-	// Increase motor safety timer to something suitably long
-	// Poke the motor speed to reset the watchdog, then enable the watchdog
-	SmartDashboard::PutNumber("Top Speed", topSpeed);
+	// Show wheel speed settings
+	SmartDashboard::PutNumber("Top Speed",    topSpeed);
 	SmartDashboard::PutNumber("Bottom Speed", bottomSpeed);
 
-	topWheel1->EnableControl();
-	topWheel1->SetExpiration(2.0);
-
-	topWheel2->EnableControl();
-	topWheel2->SetExpiration(2.0);
-
-	bottomWheel1->EnableControl();
-	bottomWheel1->SetExpiration(2.0);
-
-	bottomWheel2->EnableControl();
-	bottomWheel2->SetExpiration(2.0);
-
-	topWheel1->Set(topSpeed, SYNC_GROUP);
-	topWheel2->Set(topSpeed, SYNC_GROUP);
-	bottomWheel1->Set(bottomSpeed, SYNC_GROUP);
-	bottomWheel2->Set(bottomSpeed, SYNC_GROUP);
-
-	CANJaguar::UpdateSyncGroup(SYNC_GROUP);
-
-	topWheel1->SetSafetyEnabled(true);
-	topWheel2->SetSafetyEnabled(true);
-	bottomWheel1->SetSafetyEnabled(true);
-	bottomWheel2->SetSafetyEnabled(true);
+	// start shooter wheels in %vbus mode, full output
+	jagVbus(topWheel1,    1.0);
+	jagVbus(topWheel2,    1.0);
+	jagVbus(bottomWheel1, 1.0);
+	jagVbus(bottomWheel2, 1.0);
+	topPID = bottomPID = false;
 
 	// reset reporting counter
 	report = 0;
@@ -281,43 +266,88 @@ public:
 	    }
 	    break;
 
-	case 8:
+	case 8:			// 160 milliseconds
 	    // Get top output voltage, current and measured speed
 	    double topI1 = topWheel1->GetOutputCurrent();
 	    double topI2 = topWheel2->GetOutputCurrent();
-	    double topMeasured = topWheel1->GetSpeed(); 
+	    topMeasured = topWheel2->GetSpeed(); 
 
 	    // Send values to SmartDashboard
 	    SmartDashboard::PutNumber("Top Current 1", topI1);
 	    SmartDashboard::PutNumber("Top Current 2", topI2);
 	    SmartDashboard::PutNumber("Top Measured",  topMeasured);
+
+	    topSpeed = SmartDashboard::GetNumber("Top Speed");
+
+	    if (topPID) {
+		if (topMeasured < topSpeed * vbusThreshold) {
+		    topPID = false;
+		    // below threshold: switch both motors to full output
+		    jagVbus(topWheel1, 1.0);
+		    jagVbus(topWheel2, 1.0);
+		} else {
+		    // above threshold: run motor 1 off, PID on motor 2
+		    topWheel1->Set(0.0);
+		    topWheel2->Set(topSpeed);
+		}
+	    } else {
+		if (topMeasured >= topSpeed * pidThreshold) {
+		    // above threshold: switch motor 1 off, motor 2 PID
+		    topPID = true;
+		    topWheel1->Set(0.0);
+		    jagPID(topWheel2, topSpeed);
+		} else {
+		    // below threshold: run both motors at full output
+		    topWheel1->Set(1.0);
+		    topWheel2->Set(1.0);
+		}
+	    }
+
 	    break;
 
-	case 16:
+	case 16:		// 320 milliseconds
 	    // Get bottom output voltage, current and measured speed
 	    double bottomI1 = bottomWheel1->GetOutputCurrent();
 	    double bottomI2 = bottomWheel2->GetOutputCurrent();
-	    double bottomMeasured = bottomWheel1->GetSpeed(); 
+	    bottomMeasured = bottomWheel2->GetSpeed(); 
 
 	    // Send values to SmartDashboard
 	    SmartDashboard::PutNumber("Bottom Current 1", bottomI1);
 	    SmartDashboard::PutNumber("Bottom Current 2", bottomI2);
 	    SmartDashboard::PutNumber("Bottom Measured",  bottomMeasured);
+
+	    bottomSpeed = SmartDashboard::GetNumber("Bottom Speed");
+
+	    if (bottomPID) {
+		if (bottomMeasured < bottomSpeed * vbusThreshold) {
+		    bottomPID = false;
+		    // below threshold: switch both motors to full output
+		    jagVbus(bottomWheel1, 1.0);
+		    jagVbus(bottomWheel2, 1.0);
+		} else {
+		    // above threshold: run motor 1 off, PID on motor 2
+		    bottomWheel1->Set(0.0);
+		    bottomWheel2->Set(bottomSpeed);
+		}
+	    } else {
+		if (bottomMeasured >= bottomSpeed * pidThreshold) {
+		    // above threshold: switch motor 1 off, motor 2 PID
+		    bottomPID = true;
+		    bottomWheel1->Set(0.0);
+		    jagPID(bottomWheel2, bottomSpeed);
+		} else {
+		    // below threshold: run both motors at full output
+		    bottomWheel1->Set(1.0);
+		    bottomWheel2->Set(1.0);
+		}
+	    }
+
 	    break;
 
 	case 24:		// 480 milliseconds
-	    report = 0;
+	    report = 0;		// reset counter
+	    break;
 	}
-
-	topSpeed = SmartDashboard::GetNumber("Top Speed");
-	topWheel1->Set(topSpeed, SYNC_GROUP);
-	topWheel2->Set(topSpeed, SYNC_GROUP);
-
-	bottomSpeed = SmartDashboard::GetNumber("Bottom Speed");
-	bottomWheel1->Set(bottomSpeed, SYNC_GROUP);
-	bottomWheel2->Set(bottomSpeed, SYNC_GROUP);
-
-	CANJaguar::UpdateSyncGroup(SYNC_GROUP);
 
 	if (gamepad->GetRawButton(4))
 	{
@@ -343,8 +373,8 @@ public:
      * Use this method for initialization code which will be called each time
      * the robot enters test mode.
      */
-    void ShootyDogThing::TestInit() {
-
+    void ShootyDogThing::TestInit()
+    {
 	compressor->Start();
 	arm->Set(DoubleSolenoid::kOff);
 	injectorL->Set(DoubleSolenoid::kOff);
@@ -352,33 +382,10 @@ public:
 	ejector->Set(false);
 	legs->Set(false);
 
-	topWheel1->ChangeControlMode( CANJaguar::kPercentVbus );
-	topWheel2->ChangeControlMode( CANJaguar::kPercentVbus );
-	bottomWheel1->ChangeControlMode( CANJaguar::kPercentVbus );
-	bottomWheel2->ChangeControlMode( CANJaguar::kPercentVbus );
-
-	topWheel1->EnableControl();
-	topWheel1->SetExpiration(2.0);
-
-	topWheel2->EnableControl();
-	topWheel2->SetExpiration(2.0);
-
-	bottomWheel1->EnableControl();
-	bottomWheel1->SetExpiration(2.0);
-
-	bottomWheel2->EnableControl();
-	bottomWheel2->SetExpiration(2.0);
-
-	topWheel1->Set(0.0, SYNC_GROUP);
-	topWheel2->Set(0.0, SYNC_GROUP);
-	bottomWheel1->Set(0.0, SYNC_GROUP);
-	bottomWheel2->Set(0.0, SYNC_GROUP);
-	CANJaguar::UpdateSyncGroup(SYNC_GROUP);
-
-	topWheel1->SetSafetyEnabled(true);
-	topWheel2->SetSafetyEnabled(true);
-	bottomWheel1->SetSafetyEnabled(true);
-	bottomWheel2->SetSafetyEnabled(true);
+	jagVbus(topWheel1, 0.0);
+	jagVbus(topWheel2, 0.0);
+	jagVbus(bottomWheel1, 0.0);
+	jagVbus(bottomWheel2, 0.0);
     }
 
     /**
@@ -387,8 +394,7 @@ public:
      * Use this method for code which will be called periodically at a regular
      * rate while the robot is in test mode.
      */
-    void ShootyDogThing::TestPeriodic() {
-    }
+    void ShootyDogThing::TestPeriodic() { }
 
 };
 
