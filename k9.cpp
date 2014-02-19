@@ -163,16 +163,12 @@ public:
      */
     void DisabledInit()
     {
-	SmartDashboard::PutNumber("Top Speed", 0.0);
-	SmartDashboard::PutNumber("Bottom Speed", 0.0);
-
 	jagStop(topWheel1);
 	jagStop(topWheel2);
 	jagStop(bottomWheel1);
 	jagStop(bottomWheel2);
 
 	topPID = bottomPID = false;
-	topMeasured = bottomMeasured = 0;
 
 	arm->Set(DoubleSolenoid::kOff);
 	injectorL->Set(DoubleSolenoid::kOff);
@@ -191,7 +187,42 @@ public:
      */
     void DisabledPeriodic()
     {
-	// TBD: keep watching wheel speeds during spin-down?
+	// Keep watching wheel speeds during spin-down
+	// schedule updates to avoid overloading CAN bus or CPU
+	switch (report++) {
+	case 0:
+	    break;
+
+	case 8:			// 160 milliseconds
+	    // Get top output voltage, current and measured speed
+	    double topI1 = topWheel1->GetOutputCurrent();
+	    double topI2 = topWheel2->GetOutputCurrent();
+	    topMeasured = topWheel2->GetSpeed(); 
+
+	    // Send values to SmartDashboard
+	    SmartDashboard::PutNumber("Top Current 1", topI1);
+	    SmartDashboard::PutNumber("Top Current 2", topI2);
+	    SmartDashboard::PutNumber("Top Measured",  topMeasured);
+
+	    break;
+
+	case 16:		// 320 milliseconds
+	    // Get bottom output voltage, current and measured speed
+	    double bottomI1 = bottomWheel1->GetOutputCurrent();
+	    double bottomI2 = bottomWheel2->GetOutputCurrent();
+	    bottomMeasured = bottomWheel2->GetSpeed(); 
+
+	    // Send values to SmartDashboard
+	    SmartDashboard::PutNumber("Bottom Current 1", bottomI1);
+	    SmartDashboard::PutNumber("Bottom Current 2", bottomI2);
+	    SmartDashboard::PutNumber("Bottom Measured",  bottomMeasured);
+
+	    break;
+
+	case 24:		// 480 milliseconds
+	    report = 0;		// reset counter
+	    break;
+	}
     }
 
     /**
@@ -224,10 +255,6 @@ public:
 	injectorR->Set(DoubleSolenoid::kReverse);
 	ejector->Set(false);
 	legs->Set(true);
-
-	// Show wheel speed settings
-	SmartDashboard::PutNumber("Top Speed",    topSpeed);
-	SmartDashboard::PutNumber("Bottom Speed", bottomSpeed);
 
 	// start shooter wheels in %vbus mode, full output
 	jagVbus(topWheel1,    1.0);
