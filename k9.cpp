@@ -254,7 +254,7 @@ public:
 	injectorL->Set(DoubleSolenoid::kReverse);
 	injectorR->Set(DoubleSolenoid::kReverse);
 	ejector->Set(false);
-	legs->Set(true);
+	// legs->Set(true);
 
 	// start shooter wheels in %vbus mode, full output
 	jagVbus(topWheel1,    1.0);
@@ -390,6 +390,15 @@ public:
 	{
 	    injectorL->Set(DoubleSolenoid::kOff);
 	    injectorR->Set(DoubleSolenoid::kOff);
+	}
+
+	if (gamepad->GetRawButton(1))
+	{
+	    legs->Set(true);
+	}
+	else if (gamepad->GetRawButton(3))
+	{
+	    legs->Set(false);
 	}
 
     }
