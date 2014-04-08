@@ -645,8 +645,21 @@ printf("<<< DisabledInit\n");
     void DisabledPeriodic()
     {
 	// Keep watching wheel speeds during spin-down
-	// schedule updates to avoid overloading CAN bus or CPU
 	RunWheels();
+
+	// respond to log dump request even when disabled
+	if (!eio->GetDigital(13))
+	{
+	    if (!dump)
+	    {
+		LogDump("/ni-rt/system/k9.log");
+	    }
+	    dump = true;
+	}
+	else
+	{
+	    dump = false;
+	}
     }
 
     /**
