@@ -2,13 +2,18 @@
 #include <OSAL/Synchronized.h>
 #include <OSAL/Task.h>
 #include "Tachometer.h"
-// #include "Logger.h"
+#include "Logger.h"
 
-const double minSpeed = 1000.;
-const double maxSpeed = 3500.;
-const double pidThreshold = 0.80;
+const double minSpeed      = 1000.;
+const double maxSpeed      = 3500.;
+const double pidThreshold  = 0.80;
 const double vbusThreshold = 0.60;
-const double maxOutput = 0.70;
+const double maxOutput     = 0.70;
+const double defaultTop    = 1400.;
+const double defaultBottom = 2850.;
+const double defaultP      = 0.300;
+const double defaultI      = 0.003;
+const double defaultD      = 0.000;
 
 // #define HAVE_COMPRESSOR
 // #define HAVE_TOP_WHEEL
@@ -68,6 +73,7 @@ class ShootyDogThing : public IterativeRobot
     double topJagSpeed, bottomJagSpeed;
     double topTachSpeed, bottomTachSpeed;
     int report;
+    int dump;
 
 public:
     ShootyDogThing():
@@ -104,23 +110,28 @@ public:
 	ds(NULL),
 	eio(NULL),
 	gamepad(NULL),
-	kP(1.000),
-	kI(0.005),
-	kD(0.000),
+	kP(defaultP),
+	kI(defaultI),
+	kD(defaultD),
 	spinFastNow(false),
-	topSpeed(1400.),
-	bottomSpeed(2850.),
+	topSpeed(defaultTop),
+	bottomSpeed(defaultBottom),
 	topJagSpeed(0.),
 	bottomJagSpeed(0.),
 	topTachSpeed(0.),
 	bottomTachSpeed(0.),
-	report(0)
+	report(0),
+	dump(0)
     {
-	SetPeriod(0); 	//Set update period to sync with robot control packets (20ms nominal)
+printf(">>> ShootyDogThing\n");
+	;
+printf("<<< ShootyDogThing\n");
     }
 
     ~ShootyDogThing()
     {
+printf(">>> ~ShootyDogThing\n");
+
 	delete gamepad;
 #ifdef HAVE_LEGS
 	delete legs;
@@ -156,6 +167,8 @@ public:
 #ifdef HAVE_COMPRESSOR
 	delete compressor;
 #endif
+
+printf("<<< ~ShootyDogThing\n");
     }
     
     /**
@@ -164,9 +177,11 @@ public:
      * Use this method for default Robot-wide initialization which will
      * be called when the robot is first powered on.  It will be called exactly 1 time.
      */
-    void RobotInit() {
+    void RobotInit()
+    {
+printf(">>> RobotInit\n");
 
-//	LogInit();
+	LogInit();
 
 #ifdef HAVE_COMPRESSOR
 	compressor  = new Compressor(1, 1);
@@ -285,6 +300,10 @@ public:
 #endif
 	SmartDashboard::PutNumber("Bottom Tach     ", 0.0);
 #endif
+
+	SetPeriod(0); 	//Set update period to sync with robot control packets (20ms nominal)
+
+printf("<<< RobotInit\n");
     }
 
     // put jag in PID control mode, enabled
@@ -318,9 +337,9 @@ public:
 
     void StartWheels()
     {
-cout << ">>> StartWheels" << endl;
 	if (!spinFastNow) {
-//	    Log(LOG_START, 0, 0);
+printf(">>> StartWheels\n");
+	    Log(LOG_START, 0, 0);
 
 	    spinFastNow = true;
 
@@ -345,42 +364,42 @@ cout << ">>> StartWheels" << endl;
 
 	    // reset reporting counter
 	    report = 0;
+printf("<<< StartWheels\n");
 	}
-cout << "<<< StartWheels" << endl;
     }
 
     void StopWheels()
     {
-cout << ">>> StopWheels" << endl;
 	if (spinFastNow) {
-//	    Log(LOG_STOP, 0, 0);
+printf(">>> StopWheels\n");
+	    Log(LOG_STOP, 0, 0);
 
 	    spinFastNow = false;
 
 #ifdef HAVE_TOP_WHEEL
 #ifdef HAVE_CAN_TOP1
 	    jagStop(topWheel1);
-//	    Log(LOG_MODE, 1, 0);
+	    Log(LOG_MODE, 1, 0);
 #endif
 #ifdef HAVE_CAN_TOP2
 	    jagStop(topWheel2);
-//	    Log(LOG_MODE, 2, 0);
+	    Log(LOG_MODE, 2, 0);
 #endif
 #endif
 #ifdef HAVE_BOTTOM_WHEEL
 #ifdef HAVE_CAN_BOTTOM1
 	    jagStop(bottomWheel1);
-//	    Log(LOG_MODE, 3, 0);
+	    Log(LOG_MODE, 3, 0);
 #endif
 #ifdef HAVE_CAN_BOTTOM2
 	    jagStop(bottomWheel2);
-//	    Log(LOG_MODE, 4, 0);
+	    Log(LOG_MODE, 4, 0);
 #endif
 #endif
 
 	    topPID = bottomPID = false;
+printf("<<< StopWheels\n");
 	}
-cout << "<<< StopWheels" << endl;
     }
 
     void RunWheels()
@@ -433,11 +452,11 @@ cout << "<<< StopWheels" << endl;
 
 #ifdef HAVE_CAN_TOP1
 	    // stupid floating point!
-//	    Log(LOG_CURRENT, 1, (uint32_t)(topI1 * 1000 + 0.5));
+	    Log(LOG_CURRENT, 1, (uint32_t)(topI1 * 1000 + 0.5));
 #endif
 #ifdef HAVE_CAN_TOP2
-//	    Log(LOG_CURRENT, 2, (uint32_t)(topI2 * 1000 + 0.5));
-//	    Log(LOG_SPEED,   2, (uint32_t)(topJagSpeed + 0.5));
+	    Log(LOG_CURRENT, 2, (uint32_t)(topI2 * 1000 + 0.5));
+	    Log(LOG_SPEED,   2, (uint32_t)(topJagSpeed + 0.5));
 #endif
 
 	    // Send values to SmartDashboard
@@ -451,7 +470,7 @@ cout << "<<< StopWheels" << endl;
 	    SmartDashboard::PutNumber("Top Tach     ", topTachSpeed);
 
 	    // Get setpoint
-	    topSpeed = SmartDashboard::GetNumber("Top Speed");
+	    topSpeed = SmartDashboard::GetNumber("Top Set      ");
 
 	    if (spinFastNow) {
 		if (topPID) {
@@ -460,11 +479,11 @@ cout << "<<< StopWheels" << endl;
 			// below threshold: switch both motors to full output
 #ifdef HAVE_CAN_TOP1
 			jagVbus(topWheel1, maxOutput);
-//			Log(LOG_MODE, 1, 1);
+			Log(LOG_MODE, 1, 1);
 #endif
 #ifdef HAVE_CAN_TOP2
 			jagVbus(topWheel2, maxOutput);
-//			Log(LOG_MODE, 2, 1);
+			Log(LOG_MODE, 2, 1);
 #endif
 		    } else {
 			; // above threshold: run motor 1 off, PID on motor 2
@@ -484,7 +503,7 @@ cout << "<<< StopWheels" << endl;
 #endif
 #ifdef HAVE_CAN_TOP2
 			jagPID(topWheel2, topSpeed);
-//			Log(LOG_MODE, 2, 2);
+			Log(LOG_MODE, 2, 2);
 #endif
 		    } else {
 			; // below threshold: run both motors at full output
@@ -514,11 +533,11 @@ cout << "<<< StopWheels" << endl;
 	    bottomTachSpeed = bottomTach->PIDGet();
 
 #ifdef HAVE_CAN_BOTTOM1
-//	    Log(LOG_CURRENT, 3, (uint32_t)(bottomI1 * 1000 + 0.5));
+	    Log(LOG_CURRENT, 3, (uint32_t)(bottomI1 * 1000 + 0.5));
 #endif
 #ifdef HAVE_CAN_BOTTOM2
-//	    Log(LOG_CURRENT, 4, (uint32_t)(bottomI2 * 1000 + 0.5));
-//	    Log(LOG_SPEED,   4, (uint32_t)(bottomJagSpeed + 0.5));
+	    Log(LOG_CURRENT, 4, (uint32_t)(bottomI2 * 1000 + 0.5));
+	    Log(LOG_SPEED,   4, (uint32_t)(bottomJagSpeed + 0.5));
 #endif
 
 	    // Send values to SmartDashboard
@@ -532,7 +551,7 @@ cout << "<<< StopWheels" << endl;
 	    SmartDashboard::PutNumber("Bottom Tach     ", bottomTachSpeed);
 
 	    // Get setpoint
-	    bottomSpeed = SmartDashboard::GetNumber("Bottom Speed");
+	    bottomSpeed = SmartDashboard::GetNumber("Bottom Set      ");
 
 	    if (spinFastNow) {
 		if (bottomPID) {
@@ -541,11 +560,11 @@ cout << "<<< StopWheels" << endl;
 			// below threshold: switch both motors to full output
 #ifdef HAVE_CAN_BOTTOM1
 			jagVbus(bottomWheel1, maxOutput);
-//			Log(LOG_MODE, 3, 1);
+			Log(LOG_MODE, 3, 1);
 #endif
 #ifdef HAVE_CAN_BOTTOM2
 			jagVbus(bottomWheel2, maxOutput);
-//			Log(LOG_MODE, 4, 1);
+			Log(LOG_MODE, 4, 1);
 #endif
 		    } else {
 			; // above threshold: run motor 1 off, PID on motor 2
@@ -565,7 +584,7 @@ cout << "<<< StopWheels" << endl;
 #endif
 #ifdef HAVE_CAN_BOTTOM2
 			jagPID(bottomWheel2, bottomSpeed);
-//			Log(LOG_MODE, 4, 2);
+			Log(LOG_MODE, 4, 2);
 #endif
 		    } else {
 			; // below threshold: run both motors at full output
@@ -595,7 +614,7 @@ cout << "<<< StopWheels" << endl;
      */
     void DisabledInit()
     {
-cout << ">>> DisabledInit" << endl;
+printf(">>> DisabledInit\n");
 	StopWheels();
 
 #ifdef HAVE_ARM
@@ -614,7 +633,7 @@ cout << ">>> DisabledInit" << endl;
 #ifdef HAVE_COMPRESSOR
 	compressor->Stop();
 #endif
-cout << "<<< DisabledInit" << endl;
+printf("<<< DisabledInit\n");
     }
 
     /**
@@ -638,9 +657,9 @@ cout << "<<< DisabledInit" << endl;
      */
     void AutonomousInit()
     {
-cout << ">>> AutonomousInit" << endl;
+printf(">>> AutonomousInit\n");
 
-cout << "<<< AutonomousInit" << endl;
+printf("<<< AutonomousInit\n");
     }
 
     /**
@@ -659,7 +678,7 @@ cout << "<<< AutonomousInit" << endl;
      */
     void TeleopInit()
     {
-cout << ">>> TeleopInit" << endl;
+printf(">>> TeleopInit\n");
 #ifdef HAVE_COMPRESSOR
 	compressor->Start();
 #endif
@@ -678,7 +697,7 @@ cout << ">>> TeleopInit" << endl;
 #endif
 
 	// StartWheels();
-cout << "<<< TeleopInit" << endl;
+printf("<<< TeleopInit\n");
     }
 
 
@@ -690,11 +709,11 @@ cout << "<<< TeleopInit" << endl;
      */
     void TeleopPeriodic()
     {
-	if (eio->GetButton(1))
+	if (!eio->GetDigital(1))
 	{
 	    StartWheels();
 	}
-	else if (eio->GetButton(2))
+	else if (!eio->GetDigital(2))
 	{
 	    StopWheels();
 	}
@@ -702,23 +721,23 @@ cout << "<<< TeleopInit" << endl;
 	RunWheels();
 
 #ifdef HAVE_LEGS
-	if (eio->GetButton(3))
+	if (!eio->GetDigital(3))
 	{
 	    legs->Set(true);
 	}
-	else if (eio->GetButton(4))
+	else if (!eio->GetDigital(4))
 	{
 	    legs->Set(false);
 	}
 #endif
 
 #ifdef HAVE_INJECTOR
-	if (eio->GetButton(5))
+	if (!eio->GetDigital(5))
 	{
 	    injectorL->Set(DoubleSolenoid::kForward);
 	    injectorR->Set(DoubleSolenoid::kForward);
 	}
-	else if (eio->GetButton(6))
+	else if (!eio->GetDigital(6))
 	{
 	    injectorL->Set(DoubleSolenoid::kReverse);
 	    injectorR->Set(DoubleSolenoid::kReverse);
@@ -731,19 +750,27 @@ cout << "<<< TeleopInit" << endl;
 #endif
 
 #ifdef HAVE_EJECTOR
-	if (eio->GetButton(7))
+	if (!eio->GetDigital(7))
 	{
 	    ejector->Set(true);
 	}
-	else if (eio->GetButton(8))
+	else if (!eio->GetDigital(8))
 	{
 	    ejector->Set(false);
 	}
 #endif
 
-	if (eio->GetButton(13))
+	if (!eio->GetDigital(13))
 	{
-//	    LogDump("/ni-rt/system/k9.log");
+	    if (!dump)
+	    {
+		LogDump("/ni-rt/system/k9.log");
+	    }
+	    dump = true;
+	}
+	else
+	{
+	    dump = false;
 	}
     }
 
@@ -755,7 +782,7 @@ cout << "<<< TeleopInit" << endl;
      */
     void TestInit()
     {
-cout << ">>> TestInit" << endl;
+printf(">>> TestInit\n");
 #ifdef HAVE_COMPRESSOR
 	compressor->Start();
 #endif
@@ -789,7 +816,7 @@ cout << ">>> TestInit" << endl;
 	jagVbus(bottomWheel2, 0.0);
 #endif
 #endif
-cout << "<<< TestInit" << endl;
+printf("<<< TestInit\n");
     }
 
     /**

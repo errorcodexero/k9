@@ -3,22 +3,23 @@
 #include <OSAL/Task.h>
 #include "Tachometer.h"
 #include "Logger.h"
+#include <taskLib.h>
 
 Tachometer::Tachometer( uint32_t channel ) :
-    sensor( channel ),
+    input(channel),
     lastTime(0),
     lastInterval(0),
     sampleValid(false),
     intervalValid(false)
 {
-    sensor.RequestInterrupts( Tachometer::InterruptHandler, this );
-//    sensor.EnableInterrupts();
+    input.RequestInterrupts( Tachometer::InterruptHandler, this );
+    input.EnableInterrupts();
 }
 
 
 Tachometer::~Tachometer()
 {
-    sensor.CancelInterrupts();
+    input.CancelInterrupts();
 }
 
 
@@ -33,8 +34,7 @@ void
 Tachometer::HandleInterrupt()
 {
     // stupid floating point!
-    uint32_t when = (uint32_t) (sensor.ReadInterruptTimestamp() * 1e6 + 0.5);
-
+    uint32_t when = (uint32_t) (input.ReadInterruptTimestamp() * 1e6 + 0.5);
     {
 	NTSynchronized LOCK(tachSem);
 
@@ -49,7 +49,14 @@ Tachometer::HandleInterrupt()
 	sampleValid = true;
     }
 
-    Log(LOG_TACH, sensor.GetChannel(), when);
+    Log(LOG_TACH, input.GetChannel(), when);
+}
+
+
+bool
+Tachometer::GetInput()
+{
+    return input.Get();
 }
 
 
@@ -77,7 +84,7 @@ Tachometer::PIDGet()
 {
     uint32_t interval = GetInterval();
     if (interval) {
-	return 60.e-6 / interval;
+	return 60.e6 / (double) interval;
     } else {
 	return 0.;
     }

@@ -11,11 +11,12 @@ public:
     Tachometer( uint32_t channel );
     virtual ~Tachometer();
 
+    bool GetInput( void );
     uint32_t GetInterval( void );
     virtual double PIDGet( void );
 
 private:
-    DigitalInput sensor;
+    DigitalInput input;
     NTReentrantSemaphore tachSem;
 
     uint32_t lastTime;

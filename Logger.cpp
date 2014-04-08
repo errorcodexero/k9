@@ -10,7 +10,7 @@ static NTReentrantSemaphore logSem;
 
 void LogInit( unsigned int size )
 {
-cout << ">>> LogInit" << endl;
+printf(">>> LogInit\n");
     NTSynchronized LOCK(logSem);
 
     if (!robotLog) {
@@ -18,15 +18,15 @@ cout << ">>> LogInit" << endl;
 	robotLog->reserve( size );
 	Log(LOG_INIT, 0, 0);
     }
-cout << "<<< LogInit" << endl;
+printf("<<< LogInit\n");
 }
 
 void LogDump( const char *path )
 {
-cout << ">>> LogDump" << endl;
     NTSynchronized LOCK(logSem);
 
     if (robotLog && robotLog->size() > 1) {
+printf(">>> LogDump\n");
 	ofstream logFile(path, ofstream::out | ofstream::trunc);
 	for (vector<LogEntry>::const_iterator it = robotLog->begin();
 	     it != robotLog->end(); ++it)
@@ -36,15 +36,13 @@ cout << ">>> LogDump" << endl;
 		    << it->channel   << ","
 		    << it->value     << endl;
 	}
-	robotLog->clear();
-	Log(LOG_INIT, 0, 0);
+printf("    LogDump: %u entries\n", robotLog->size());
+printf("<<< LogDump\n");
     }
-cout << "<<< LogDump" << endl;
 }
 
 void Log( uint32_t type, uint32_t channel, uint32_t value )
 {
-cout << ">>> Log(" << type << "," << channel << "," << value << ")" << endl;
     NTSynchronized LOCK(logSem);
 
     if (!robotLog) {
@@ -58,7 +56,6 @@ cout << ">>> Log(" << type << "," << channel << "," << value << ")" << endl;
     entry.value = value;
 
     robotLog->push_back(entry);
-cout << "<<< Log";
 }
 
 
