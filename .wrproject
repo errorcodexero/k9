@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <wrxml>
     <properties platform="VxWorks" platform_name="vxworks-6.3" root="1" type="DownloadableKernelModuleProject"/>
     <attributes>
@@ -245,8 +245,47 @@
     </attributes>
     <buildtargets>
         <buildtarget buildtool="Linker" name="k9" passed="false" targetname="k9">
+            <attributes>
+                <mapAttribute>
+                    <listAttribute key="BLD::Info|Incl|PPC32diab">
+                        <stringAttribute value="-I$(WIND_BASE)/target/h"/>
+                        <stringAttribute value="-I$(WIND_BASE)/target/h/wrn/coreip"/>
+                        <stringAttribute value="-I$(PROJ_ROOT_DIR)/../WPILib"/>
+                        <stringAttribute value="-I$(PROJ_ROOT_DIR)"/>
+                    </listAttribute>
+                    <listAttribute key="BLD::Info|Incl|PPC32gnu">
+                        <stringAttribute value="-I$(WIND_BASE)/target/h"/>
+                        <stringAttribute value="-I$(WIND_BASE)/target/h/wrn/coreip"/>
+                        <stringAttribute value="-I$(PROJ_ROOT_DIR)/../WPILib"/>
+                        <stringAttribute value="-I$(PROJ_ROOT_DIR)"/>
+                    </listAttribute>
+                    <listAttribute key="BLD::Info|Incl|PPC603diab">
+                        <stringAttribute value="-I$(WIND_BASE)/target/h"/>
+                        <stringAttribute value="-I$(WIND_BASE)/target/h/wrn/coreip"/>
+                        <stringAttribute value="-I$(PROJ_ROOT_DIR)/../WPILib"/>
+                        <stringAttribute value="-I$(PROJ_ROOT_DIR)"/>
+                    </listAttribute>
+                    <listAttribute key="BLD::Info|Incl|PPC603gnu">
+                        <stringAttribute value="-I$(PROJ_ROOT_DIR)"/>
+                        <stringAttribute value="-I$(PROJ_ROOT_DIR)/../WPILib"/>
+                        <stringAttribute value="-I$(WIND_BASE)/target/h"/>
+                        <stringAttribute value="-I$(WIND_BASE)/target/h/wrn/coreip"/>
+                    </listAttribute>
+                    <listAttribute key="BLD::Info|Libs|PPC32diab">
+                        <stringAttribute value="$(PROJ_ROOT_DIR)/../WPILib/PPC603/WPILib/Debug/WPILib.a"/>
+                    </listAttribute>
+                    <listAttribute key="BLD::Info|Libs|PPC32gnu">
+                        <stringAttribute value="$(PROJ_ROOT_DIR)/../WPILib/PPC603/WPILib/Debug/WPILib.a"/>
+                    </listAttribute>
+                    <listAttribute key="BLD::Info|Libs|PPC603diab">
+                        <stringAttribute value="$(PROJ_ROOT_DIR)/../WPILib/PPC603/WPILib/Debug/WPILib.a"/>
+                    </listAttribute>
+                    <listAttribute key="BLD::Info|Libs|PPC603gnu"/>
+                </mapAttribute>
+            </attributes>
             <contents>
                 <buildtargetreference name="/k9/k9_partialImage"/>
+                <buildtargetreference name="/WPILib/WPILib"/>
             </contents>
         </buildtarget>
         <buildtarget buildtool="Partial Image Linker" name="k9_partialImage" passed="true" targetname="k9_partialImage">
