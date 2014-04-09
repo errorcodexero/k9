@@ -21,12 +21,12 @@ printf(">>> LogInit\n");
 printf("<<< LogInit\n");
 }
 
-void LogDump( const char *path )
+void LogSave( const char *path )
 {
     NTSynchronized LOCK(logSem);
 
     if (robotLog && robotLog->size() > 1) {
-printf(">>> LogDump\n");
+printf(">>> LogSave\n");
 	ofstream logFile(path, ofstream::out | ofstream::trunc);
 	for (vector<LogEntry>::const_iterator it = robotLog->begin();
 	     it != robotLog->end(); ++it)
@@ -36,8 +36,8 @@ printf(">>> LogDump\n");
 		    << it->channel   << ","
 		    << it->value     << endl;
 	}
-printf("    LogDump: %u entries\n", robotLog->size());
-printf("<<< LogDump\n");
+printf("    LogSave: %u entries\n", robotLog->size());
+printf("<<< LogSave\n");
     }
 }
 

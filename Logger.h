@@ -19,6 +19,6 @@ struct LogEntry
 #define LOG_TACH    6
 
 extern void LogInit( unsigned int size = 10000 );
-extern void LogDump( const char *path );
+extern void LogSave( const char *path );
 extern void Log( uint32_t type, uint32_t channel, uint32_t value );
 

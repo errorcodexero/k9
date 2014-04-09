@@ -18,10 +18,12 @@ const double defaultD      = 0.000;
 // #define HAVE_COMPRESSOR
 // #define HAVE_TOP_WHEEL
 // #define HAVE_TOP_CAN1
+// #define HAVE_TOP_PWM1
 // #define HAVE_TOP_CAN2
 #define HAVE_BOTTOM_WHEEL
-// #define HAVE_CAN_BOTTOM1
-#define HAVE_CAN_BOTTOM2
+// #define HAVE_BOTTOM_CAN1
+// #define HAVE_BOTTOM_PWM1
+#define HAVE_BOTTOM_CAN2
 // #define HAVE_ARM
 // #define HAVE_INJECTOR
 // #define HAVE_EJECTOR
@@ -36,16 +38,22 @@ class ShootyDogThing : public IterativeRobot
 #ifdef HAVE_TOP_CAN1
     CANJaguar *topWheel1;
 #endif
+#ifdef HAVE_TOP_PWM1
+    Victor *topWheel1;
+#endif
 #ifdef HAVE_TOP_CAN2
     CANJaguar *topWheel2;
 #endif
     Tachometer *topTach;
 #endif
 #ifdef HAVE_BOTTOM_WHEEL
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_CAN1
     CANJaguar *bottomWheel1;
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_PWM1
+    Victor *bottomWheel1;
+#endif
+#ifdef HAVE_BOTTOM_CAN2
     CANJaguar *bottomWheel2;
 #endif
     Tachometer *bottomTach;
@@ -81,15 +89,25 @@ public:
 	compressor(NULL),
 #endif
 #ifdef HAVE_TOP_WHEEL
+#ifdef HAVE_TOP_CAN1
 	topWheel1(NULL),
+#endif
+#ifdef HAVE_TOP_PWM1
+	topWheel1(NULL),
+#endif
+#ifdef HAVE_TOP_CAN2
 	topWheel2(NULL),
+#endif
 	topTach(NULL),
 #endif
 #ifdef HAVE_BOTTOM_WHEEL
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_CAN1
 	bottomWheel1(NULL),
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_PWM1
+	bottomWheel1(NULL),
+#endif
+#ifdef HAVE_BOTTOM_CAN2
 	bottomWheel2(NULL),
 #endif
 	bottomTach(NULL),
@@ -148,19 +166,25 @@ printf(">>> ~ShootyDogThing\n");
 #endif
 #ifdef HAVE_BOTTOM_WHEEL
 	delete bottomTach;
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_CAN2
 	delete bottomWheel2;
 #endif
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_PWM1
+	delete bottomWheel1;
+#endif
+#ifdef HAVE_BOTTOM_CAN1
 	delete bottomWheel1;
 #endif
 #endif
 #ifdef HAVE_TOP_WHEEL
 	delete topTach;
-#ifdef HAVE_CAN_TOP2
+#ifdef HAVE_TOP_CAN2
 	delete topWheel2;
 #endif
-#ifdef HAVE_CAN_TOP1
+#ifdef HAVE_TOP_PWM1
+	delete topWheel1;
+#endif
+#ifdef HAVE_TOP_CAN1
 	delete topWheel1;
 #endif
 #endif
@@ -188,13 +212,17 @@ printf(">>> RobotInit\n");
 #endif
 
 #ifdef HAVE_TOP_WHEEL
-#ifdef HAVE_CAN_TOP1
+#ifdef HAVE_TOP_CAN1
 	topWheel1    = new CANJaguar(1);
 	topWheel1->SetSafetyEnabled(false);	// motor safety off while configuring
 	topWheel1->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
 	topWheel1->ConfigEncoderCodesPerRev( 1 );
 #endif
-#ifdef HAVE_CAN_TOP2
+#ifdef HAVE_TOP_PWM1
+	topWheel1    = new Victor(1);
+	topWheel1->SetSafetyEnabled(false);	// motor safety off while configuring
+#endif
+#ifdef HAVE_TOP_CAN2
 	topWheel2    = new CANJaguar(2);
 	topWheel2->SetSafetyEnabled(false);	// motor safety off while configuring
 	topWheel2->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
@@ -204,13 +232,17 @@ printf(">>> RobotInit\n");
 #endif
 
 #ifdef HAVE_BOTTOM_WHEEL
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_CAN1
 	bottomWheel1 = new CANJaguar(3);
 	bottomWheel1->SetSafetyEnabled(false);	// motor safety off while configuring
 	bottomWheel1->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
 	bottomWheel1->ConfigEncoderCodesPerRev( 1 );
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_PWM1
+	bottomWheel1 = new Victor(2);
+	bottomWheel1->SetSafetyEnabled(false);	// motor safety off while configuring
+#endif
+#ifdef HAVE_BOTTOM_CAN2
 	bottomWheel2 = new CANJaguar(4);
 	bottomWheel2->SetSafetyEnabled(false);	// motor safety off while configuring
 	bottomWheel2->SetSpeedReference( CANJaguar::kSpeedRef_Encoder );
@@ -242,18 +274,24 @@ printf(">>> RobotInit\n");
 	lw->AddActuator("K9", "Compressor", compressor);
 #endif
 #ifdef HAVE_TOP_WHEEL
-#ifdef HAVE_CAN_TOP1
+#ifdef HAVE_TOP_CAN1
 	lw->AddActuator("K9", "Top1",       topWheel1);
 #endif
-#ifdef HAVE_CAN_TOP2
+#ifdef HAVE_TOP_PWM1
+	lw->AddActuator("K9", "Top1",       topWheel1);
+#endif
+#ifdef HAVE_TOP_CAN2
 	lw->AddActuator("K9", "Top2",       topWheel2);
 #endif
 #endif
 #ifdef HAVE_BOTTOM_WHEEL
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_CAN1
 	lw->AddActuator("K9", "Bottom1",    bottomWheel1);
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_PWM1
+	lw->AddActuator("K9", "Bottom1",    bottomWheel1);
+#endif
+#ifdef HAVE_BOTTOM_CAN2
 	lw->AddActuator("K9", "Bottom2",    bottomWheel2);
 #endif
 #endif
@@ -291,10 +329,10 @@ printf(">>> RobotInit\n");
 
 #ifdef HAVE_BOTTOM_WHEEL
 	SmartDashboard::PutNumber("Bottom Set      ", bottomSpeed);
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_CAN1
 	SmartDashboard::PutNumber("Bottom Current 1", 0.0);
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_CAN2
 	SmartDashboard::PutNumber("Bottom Current 2", 0.0);
 	SmartDashboard::PutNumber("Bottom Jag      ", 0.0);
 #endif
@@ -345,19 +383,31 @@ printf(">>> StartWheels\n");
 
 	    // start shooter wheels in %vbus mode, max output
 #ifdef HAVE_TOP_WHEEL
-#ifdef HAVE_CAN_TOP1
+#ifdef HAVE_TOP_CAN1
 	    jagVbus(topWheel1,    maxOutput);
+	    Log(LOG_MODE, 1, 1);
 #endif
-#ifdef HAVE_CAN_TOP2
+#ifdef HAVE_TOP_PWM1
+	    topWheel1->Set(maxOutput);
+	    Log(LOG_MODE, 1, 1);
+#endif
+#ifdef HAVE_TOP_CAN2
 	    jagVbus(topWheel2,    maxOutput);
+	    Log(LOG_MODE, 2, 1);
 #endif
 #endif
 #ifdef HAVE_BOTTOM_WHEEL
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_CAN1
 	    jagVbus(bottomWheel1, maxOutput);
+	    Log(LOG_MODE, 3, 1);
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_PWM1
+	    bottomWheel1->Set(maxOutput);
+	    Log(LOG_MODE, 3, 1);
+#endif
+#ifdef HAVE_BOTTOM_CAN2
 	    jagVbus(bottomWheel2, maxOutput);
+	    Log(LOG_MODE, 4, 1);
 #endif
 #endif
 	    topPID = bottomPID = false;
@@ -377,21 +427,29 @@ printf(">>> StopWheels\n");
 	    spinFastNow = false;
 
 #ifdef HAVE_TOP_WHEEL
-#ifdef HAVE_CAN_TOP1
+#ifdef HAVE_TOP_CAN1
 	    jagStop(topWheel1);
 	    Log(LOG_MODE, 1, 0);
 #endif
-#ifdef HAVE_CAN_TOP2
+#ifdef HAVE_TOP_PWM1
+	    topWheel1->Disable();
+	    Log(LOG_MODE, 1, 0);
+#endif
+#ifdef HAVE_TOP_CAN2
 	    jagStop(topWheel2);
 	    Log(LOG_MODE, 2, 0);
 #endif
 #endif
 #ifdef HAVE_BOTTOM_WHEEL
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_CAN1
 	    jagStop(bottomWheel1);
 	    Log(LOG_MODE, 3, 0);
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_PWM1
+	    bottomWheel1->Disable();
+	    Log(LOG_MODE, 3, 0);
+#endif
+#ifdef HAVE_BOTTOM_CAN2
 	    jagStop(bottomWheel2);
 	    Log(LOG_MODE, 4, 0);
 #endif
@@ -404,8 +462,12 @@ printf("<<< StopWheels\n");
 
     void RunWheels()
     {
+//	uint32_t t0, t1, t2, t3;
+
 	// schedule updates to avoid overloading CAN bus or CPU
 	switch (report++) {
+	case 12:		// 240 milliseconds
+	    report = 0;		// reset counter
 	case 0:
 	    // Update PID parameters
 	    double newP = SmartDashboard::GetNumber("Shooter P");
@@ -417,20 +479,20 @@ printf("<<< StopWheels\n");
 		kD = newD;
 #ifdef HAVE_TOP_WHEEL
 		if (topPID) {
-#ifdef HAVE_CAN_TOP1
+#ifdef HAVE_TOP_CAN1
 		    ; // topWheel1->SetPID( kP, kI, kD );
 #endif
-#ifdef HAVE_CAN_TOP2
+#ifdef HAVE_TOP_CAN2
 		    topWheel2->SetPID( kP, kI, kD );
 #endif
 		}
 #endif
 #ifdef HAVE_BOTTOM_WHEEL
 		if (bottomPID) {
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_CAN1
 		    ; // bottomWheel1->SetPID( kP, kI, kD );
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_CAN2
 		    bottomWheel2->SetPID( kP, kI, kD );
 #endif
 		}
@@ -438,32 +500,34 @@ printf("<<< StopWheels\n");
 	    }
 	    break;
 
-	case 8:			// 160 milliseconds
+	case 4:			// 80 milliseconds
 #ifdef HAVE_TOP_WHEEL
+//t0 = GetFPGATime();
 	    // Get top output voltage, current and measured speed
-#ifdef HAVE_CAN_TOP1
+#ifdef HAVE_TOP_CAN1
 	    double topI1 = topWheel1->GetOutputCurrent();
 #endif
-#ifdef HAVE_CAN_TOP2
+#ifdef HAVE_TOP_CAN2
 	    double topI2 = topWheel2->GetOutputCurrent();
 	    topJagSpeed  = topWheel2->GetSpeed(); 
 #endif
+//t1 = GetFPGATime();
 	    topTachSpeed = topTach->PIDGet();
 
-#ifdef HAVE_CAN_TOP1
+#ifdef HAVE_TOP_CAN1
 	    // stupid floating point!
 	    Log(LOG_CURRENT, 1, (uint32_t)(topI1 * 1000 + 0.5));
 #endif
-#ifdef HAVE_CAN_TOP2
+#ifdef HAVE_TOP_CAN2
 	    Log(LOG_CURRENT, 2, (uint32_t)(topI2 * 1000 + 0.5));
 	    Log(LOG_SPEED,   2, (uint32_t)(topJagSpeed + 0.5));
 #endif
 
 	    // Send values to SmartDashboard
-#ifdef HAVE_CAN_TOP1
+#ifdef HAVE_TOP_CAN1
 	    SmartDashboard::PutNumber("Top Current 1", topI1);
 #endif
-#ifdef HAVE_CAN_TOP2
+#ifdef HAVE_TOP_CAN2
 	    SmartDashboard::PutNumber("Top Current 2", topI2);
 	    SmartDashboard::PutNumber("Top Jag      ", topJagSpeed);
 #endif
@@ -471,26 +535,34 @@ printf("<<< StopWheels\n");
 
 	    // Get setpoint
 	    topSpeed = SmartDashboard::GetNumber("Top Set      ");
+//t2 = GetFPGATime();
 
 	    if (spinFastNow) {
 		if (topPID) {
 		    if (topJagSpeed < topSpeed * vbusThreshold) {
 			topPID = false;
 			// below threshold: switch both motors to full output
-#ifdef HAVE_CAN_TOP1
+#ifdef HAVE_TOP_CAN1
 			jagVbus(topWheel1, maxOutput);
 			Log(LOG_MODE, 1, 1);
 #endif
-#ifdef HAVE_CAN_TOP2
+#ifdef HAVE_TOP_PWM1
+			topWheel1->Set(maxOutput);
+			Log(LOG_MODE, 1, 1);
+#endif
+#ifdef HAVE_TOP_CAN2
 			jagVbus(topWheel2, maxOutput);
 			Log(LOG_MODE, 2, 1);
 #endif
 		    } else {
 			; // above threshold: run motor 1 off, PID on motor 2
-#ifdef HAVE_CAN_TOP1
+#ifdef HAVE_TOP_CAN1
 			topWheel1->Set(0.0);
 #endif
-#ifdef HAVE_CAN_TOP2
+#ifdef HAVE_TOP_PWM1
+			topWheel1->Set(0.0);
+#endif
+#ifdef HAVE_TOP_CAN2
 			topWheel2->Set(topSpeed);
 #endif
 		    }
@@ -498,53 +570,63 @@ printf("<<< StopWheels\n");
 		    if (topJagSpeed >= topSpeed * pidThreshold) {
 			; // above threshold: switch motor 1 off, motor 2 PID
 			topPID = true;
-#ifdef HAVE_CAN_TOP1
+#ifdef HAVE_TOP_CAN1
 			topWheel1->Set(0.0);
 #endif
-#ifdef HAVE_CAN_TOP2
+#ifdef HAVE_TOP_PWM1
+			topWheel1->Set(0.0);
+#endif
+#ifdef HAVE_TOP_CAN2
 			jagPID(topWheel2, topSpeed);
 			Log(LOG_MODE, 2, 2);
 #endif
 		    } else {
 			; // below threshold: run both motors at full output
-#ifdef HAVE_CAN_TOP1
+#ifdef HAVE_TOP_CAN1
 			topWheel1->Set(maxOutput);
 #endif
-#ifdef HAVE_CAN_TOP2
+#ifdef HAVE_TOP_PWM1
+			topWheel1->Set(maxOutput);
+#endif
+#ifdef HAVE_TOP_CAN2
 			topWheel2->Set(maxOutput);
 #endif
 		    }
 		}
+//t3 = GetFPGATime();
+//printf("%10u %10u %10u\n", (uint32_t)(t1 - t0), (uint32_t)(t2 - t1), (uint32_t)(t3 - t2));
 	    }
 #endif
 
 	    break;
 
-	case 16:		// 320 milliseconds
-	    // Get bottom output voltage, current and measured speed
+	case 8:		// 160 milliseconds
 #ifdef HAVE_BOTTOM_WHEEL
-#ifdef HAVE_CAN_BOTTOM1
+	    // Get bottom output voltage, current and measured speed
+//t0 = GetFPGATime();
+#ifdef HAVE_BOTTOM_CAN1
 	    double bottomI1 = bottomWheel1->GetOutputCurrent();
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_CAN2
 	    double bottomI2 = bottomWheel2->GetOutputCurrent();
 	    bottomJagSpeed  = bottomWheel2->GetSpeed();
 #endif
+//t1 = GetFPGATime();
 	    bottomTachSpeed = bottomTach->PIDGet();
 
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_CAN1
 	    Log(LOG_CURRENT, 3, (uint32_t)(bottomI1 * 1000 + 0.5));
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_CAN2
 	    Log(LOG_CURRENT, 4, (uint32_t)(bottomI2 * 1000 + 0.5));
 	    Log(LOG_SPEED,   4, (uint32_t)(bottomJagSpeed + 0.5));
 #endif
 
 	    // Send values to SmartDashboard
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_CAN1
 	    SmartDashboard::PutNumber("Bottom Current 1", bottomI1);
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_CAN2
 	    SmartDashboard::PutNumber("Bottom Current 2", bottomI2);
 	    SmartDashboard::PutNumber("Bottom Jag      ", bottomJagSpeed);
 #endif
@@ -552,26 +634,34 @@ printf("<<< StopWheels\n");
 
 	    // Get setpoint
 	    bottomSpeed = SmartDashboard::GetNumber("Bottom Set      ");
+//t2 = GetFPGATime();
 
 	    if (spinFastNow) {
 		if (bottomPID) {
 		    if (bottomJagSpeed < bottomSpeed * vbusThreshold) {
 			bottomPID = false;
 			// below threshold: switch both motors to full output
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_CAN1
 			jagVbus(bottomWheel1, maxOutput);
 			Log(LOG_MODE, 3, 1);
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_PWM1
+			bottomWheel1->Set(maxOutput);
+			Log(LOG_MODE, 3, 1);
+#endif
+#ifdef HAVE_BOTTOM_CAN2
 			jagVbus(bottomWheel2, maxOutput);
 			Log(LOG_MODE, 4, 1);
 #endif
 		    } else {
 			; // above threshold: run motor 1 off, PID on motor 2
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_CAN1
 			bottomWheel1->Set(0.0);
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_PWM1
+			bottomWheel1->Set(0.0);
+#endif
+#ifdef HAVE_BOTTOM_CAN2
 			bottomWheel2->Set(bottomSpeed);
 #endif
 		    }
@@ -579,29 +669,33 @@ printf("<<< StopWheels\n");
 		    if (bottomJagSpeed >= bottomSpeed * pidThreshold) {
 			// above threshold: switch motor 1 off, motor 2 PID
 			bottomPID = true;
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_CAN1
 			bottomWheel1->Set(0.0);
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_PWM1
+			bottomWheel1->Set(0.0);
+#endif
+#ifdef HAVE_BOTTOM_CAN2
 			jagPID(bottomWheel2, bottomSpeed);
 			Log(LOG_MODE, 4, 2);
 #endif
 		    } else {
 			; // below threshold: run both motors at full output
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_CAN1
 			bottomWheel1->Set(maxOutput);
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_PWM1
+			bottomWheel1->Set(maxOutput);
+#endif
+#ifdef HAVE_BOTTOM_CAN2
 			bottomWheel2->Set(maxOutput);
 #endif
 		    }
 		}
+//t3 = GetFPGATime();
+//printf("%10u %10u %10u\n", (uint32_t)(t1 - t0), (uint32_t)(t2 - t1), (uint32_t)(t3 - t2));
 	    }
 #endif
-	    break;
-
-	case 24:		// 480 milliseconds
-	    report = 0;		// reset counter
 	    break;
 	}
     }
@@ -652,7 +746,7 @@ printf("<<< DisabledInit\n");
 	{
 	    if (!dump)
 	    {
-		LogDump("/ni-rt/system/k9.log");
+		LogSave("/ni-rt/system/k9.csv");
 	    }
 	    dump = true;
 	}
@@ -777,7 +871,7 @@ printf("<<< TeleopInit\n");
 	{
 	    if (!dump)
 	    {
-		LogDump("/ni-rt/system/k9.log");
+		LogSave("/ni-rt/system/k9.csv");
 	    }
 	    dump = true;
 	}
@@ -814,18 +908,24 @@ printf(">>> TestInit\n");
 #endif
 
 #ifdef HAVE_TOP_WHEEL
-#ifdef HAVE_CAN_TOP1
+#ifdef HAVE_TOP_CAN1
 	jagVbus(topWheel1, 0.0);
 #endif
-#ifdef HAVE_CAN_TOP2
+#ifdef HAVE_TOP_PWM1
+	topWheel1->Set(0.0);
+#endif
+#ifdef HAVE_TOP_CAN2
 	jagVbus(topWheel2, 0.0);
 #endif
 #endif
 #ifdef HAVE_BOTTOM_WHEEL
-#ifdef HAVE_CAN_BOTTOM1
+#ifdef HAVE_BOTTOM_CAN1
 	jagVbus(bottomWheel1, 0.0);
 #endif
-#ifdef HAVE_CAN_BOTTOM2
+#ifdef HAVE_BOTTOM_PWM1
+	bottomWheel1->Set(0.0);
+#endif
+#ifdef HAVE_BOTTOM_CAN2
 	jagVbus(bottomWheel2, 0.0);
 #endif
 #endif
